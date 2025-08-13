@@ -1,0 +1,319 @@
+# AWS Deployment Configuration for Real-Time Translator
+# This template deploys the application to AWS ECS with ALB and RDS
+
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Real-Time Translator Application Deployment on AWS'
+
+Parameters:
+ VpcId:
+ Type: AWS::EC2::VPC::Id
+ Description: VPC ID where resources will be created
+ 
+ SubnetIds:
+ Type: List<AWS::EC2::Subnet::Id>
+ Description: List of subnet IDs for the load balancer
+ 
+ ImageURI:
+ Type: String
+ Description: Docker image URI for the application
+ Default: '{{ACCOUNT_ID}}.dkr.ecr.{{REGION}}.amazonaws.com/real-time-translator:latest'
+ 
+ DesiredCount:
+ Type: Number
+ Description: Number of instances to run
+ Default: 2
+ MinValue: 1
+ MaxValue: 10
+ 
+ ContainerMemory:
+ Type: Number
+ Description: Memory limit for container (MB)
+ Default: 4096
+ 
+ ContainerCpu:
+ Type: Number
+ Description: CPU units for container
+ Default: 2048
+
+Resources:
+ # ECS Cluster
+ ECSCluster:
+ Type: AWS::ECS::Cluster
+ Properties:
+ ClusterName: real-time-translator-cluster
+ CapacityProviders:
+ - FARGATE
+ - FARGATE_SPOT
+ DefaultCapacityProviderStrategy:
+ - CapacityProvider: FARGATE
+ Weight: 1
+ - CapacityProvider: FARGATE_SPOT
+ Weight: 4
+
+ # Application Load Balancer
+ ApplicationLoadBalancer:
+ Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+ Properties:
+ Name: real-time-translator-alb
+ Type: application
+ Scheme: internet-facing
+ SecurityGroups:
+ - !Ref ALBSecurityGroup
+ Subnets: !Ref SubnetIds
+ 
+ # ALB Target Group
+ ALBTargetGroup:
+ Type: AWS::ElasticLoadBalancingV2::TargetGroup
+ Properties:
+ Name: real-time-translator-tg
+ Port: 7860
+ Protocol: HTTP
+ TargetType: ip
+ VpcId: !Ref VpcId
+ HealthCheckPath: /health
+ HealthCheckIntervalSeconds: 30
+ HealthCheckTimeoutSeconds: 5
+ HealthyThresholdCount: 2
+ UnhealthyThresholdCount: 3
+ 
+ # ALB Listener
+ ALBListener:
+ Type: AWS::ElasticLoadBalancingV2::Listener
+ Properties:
+ DefaultActions:
+ - Type: forward
+ TargetGroupArn: !Ref ALBTargetGroup
+ LoadBalancerArn: !Ref ApplicationLoadBalancer
+ Port: 80
+ Protocol: HTTP
+
+ # HTTPS Listener (requires SSL certificate)
+ ALBListenerHTTPS:
+ Type: AWS::ElasticLoadBalancingV2::Listener
+ Properties:
+ DefaultActions:
+ - Type: forward
+ TargetGroupArn: !Ref ALBTargetGroup
+ LoadBalancerArn: !Ref ApplicationLoadBalancer
+ Port: 443
+ Protocol: HTTPS
+ Certificates:
+ - CertificateArn: !Ref SSLCertificate
+
+ # SSL Certificate
+ SSLCertificate:
+ Type: AWS::CertificateManager::Certificate
+ Properties:
+ DomainName: !Sub '${AWS::StackName}.example.com'
+ ValidationMethod: DNS
+
+ # Security Groups
+ ALBSecurityGroup:
+ Type: AWS::EC2::SecurityGroup
+ Properties:
+ GroupDescription: Security group for Application Load Balancer
+ VpcId: !Ref VpcId
+ SecurityGroupIngress:
+ - IpProtocol: tcp
+ FromPort: 80
+ ToPort: 80
+ CidrIp: 0.0.0.0/0
+ - IpProtocol: tcp
+ FromPort: 443
+ ToPort: 443
+ CidrIp: 0.0.0.0/0
+
+ ECSSecurityGroup:
+ Type: AWS::EC2::SecurityGroup
+ Properties:
+ GroupDescription: Security group for ECS tasks
+ VpcId: !Ref VpcId
+ SecurityGroupIngress:
+ - IpProtocol: tcp
+ FromPort: 7860
+ ToPort: 7860
+ SourceSecurityGroupId: !Ref ALBSecurityGroup
+
+ # IAM Role for ECS Task
+ ECSTaskRole:
+ Type: AWS::IAM::Role
+ Properties:
+ AssumeRolePolicyDocument:
+ Version: '2012-10-17'
+ Statement:
+ - Effect: Allow
+ Principal:
+ Service: ecs-tasks.amazonaws.com
+ Action: sts:AssumeRole
+ ManagedPolicyArns:
+ - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+ Policies:
+ - PolicyName: S3Access
+ PolicyDocument:
+ Version: '2012-10-17'
+ Statement:
+ - Effect: Allow
+ Action:
+ - s3:GetObject
+ - s3:PutObject
+ - s3:DeleteObject
+ Resource: !Sub '${S3Bucket}/*'
+ - PolicyName: SecretsManagerAccess
+ PolicyDocument:
+ Version: '2012-10-17'
+ Statement:
+ - Effect: Allow
+ Action:
+ - secretsmanager:GetSecretValue
+ Resource: !Ref APIKeysSecret
+
+ # ECS Task Definition
+ ECSTaskDefinition:
+ Type: AWS::ECS::TaskDefinition
+ Properties:
+ Family: real-time-translator
+ NetworkMode: awsvpc
+ RequiresCompatibilities:
+ - FARGATE
+ Cpu: !Ref ContainerCpu
+ Memory: !Ref ContainerMemory
+ ExecutionRoleArn: !Ref ECSTaskRole
+ TaskRoleArn: !Ref ECSTaskRole
+ ContainerDefinitions:
+ - Name: real-time-translator
+ Image: !Ref ImageURI
+ PortMappings:
+ - ContainerPort: 7860
+ Protocol: tcp
+ Environment:
+ - Name: ENVIRONMENT
+ Value: production
+ - Name: AWS_REGION
+ Value: !Ref AWS::Region
+ - Name: S3_BUCKET
+ Value: !Ref S3Bucket
+ Secrets:
+ - Name: GOOGLE_API_KEY
+ ValueFrom: !Sub '${APIKeysSecret}:google_api_key::'
+ - Name: HUGGINGFACE_API_KEY
+ ValueFrom: !Sub '${APIKeysSecret}:huggingface_api_key::'
+ LogConfiguration:
+ LogDriver: awslogs
+ Options:
+ awslogs-group: !Ref CloudWatchLogGroup
+ awslogs-region: !Ref AWS::Region
+ awslogs-stream-prefix: ecs
+ HealthCheck:
+ Command:
+ - CMD-SHELL
+ - curl -f http://localhost:7860/health || exit 1
+ Interval: 30
+ Timeout: 5
+ Retries: 3
+
+ # ECS Service
+ ECSService:
+ Type: AWS::ECS::Service
+ DependsOn: ALBListener
+ Properties:
+ ServiceName: real-time-translator-service
+ Cluster: !Ref ECSCluster
+ TaskDefinition: !Ref ECSTaskDefinition
+ DesiredCount: !Ref DesiredCount
+ LaunchType: FARGATE
+ NetworkConfiguration:
+ AwsvpcConfiguration:
+ SecurityGroups:
+ - !Ref ECSSecurityGroup
+ Subnets: !Ref SubnetIds
+ AssignPublicIp: ENABLED
+ LoadBalancers:
+ - ContainerName: real-time-translator
+ ContainerPort: 7860
+ TargetGroupArn: !Ref ALBTargetGroup
+
+ # S3 Bucket for file storage
+ S3Bucket:
+ Type: AWS::S3::Bucket
+ Properties:
+ BucketName: !Sub '${AWS::StackName}-storage-${AWS::AccountId}'
+ VersioningConfiguration:
+ Status: Enabled
+ BucketEncryption:
+ ServerSideEncryptionConfiguration:
+ - ServerSideEncryptionByDefault:
+ SSEAlgorithm: AES256
+ PublicAccessBlockConfiguration:
+ BlockPublicAcls: true
+ BlockPublicPolicy: true
+ IgnorePublicAcls: true
+ RestrictPublicBuckets: true
+
+ # Secrets Manager for API keys
+ APIKeysSecret:
+ Type: AWS::SecretsManager::Secret
+ Properties:
+ Name: !Sub '${AWS::StackName}-api-keys'
+ Description: 'API keys for Real-Time Translator'
+ SecretString: !Sub |
+ {
+ "google_api_key": "YOUR_GOOGLE_API_KEY",
+ "huggingface_api_key": "YOUR_HUGGINGFACE_API_KEY"
+ }
+
+ # CloudWatch Log Group
+ CloudWatchLogGroup:
+ Type: AWS::Logs::LogGroup
+ Properties:
+ LogGroupName: /ecs/real-time-translator
+ RetentionInDays: 7
+
+ # Auto Scaling Target
+ AutoScalingTarget:
+ Type: AWS::ApplicationAutoScaling::ScalableTarget
+ Properties:
+ MinCapacity: 1
+ MaxCapacity: 10
+ ResourceId: !Sub 'service/${ECSCluster}/${ECSService.Name}'
+ RoleARN: !Sub 'arn:aws:iam::${AWS::AccountId}:role/aws-service-role/ecs.application-autoscaling.amazonaws.com/AWSServiceRoleForApplicationAutoScaling_ECSService'
+ ScalableDimension: ecs:service:DesiredCount
+ ServiceNamespace: ecs
+
+ # Auto Scaling Policy
+ AutoScalingPolicy:
+ Type: AWS::ApplicationAutoScaling::ScalingPolicy
+ Properties:
+ PolicyName: real-time-translator-scaling-policy
+ PolicyType: TargetTrackingScaling
+ ScalingTargetId: !Ref AutoScalingTarget
+ TargetTrackingScalingPolicyConfiguration:
+ PredefinedMetricSpecification:
+ PredefinedMetricType: ECSServiceAverageCPUUtilization
+ TargetValue: 70.0
+ ScaleOutCooldown: 300
+ ScaleInCooldown: 300
+
+Outputs:
+ LoadBalancerURL:
+ Description: 'URL of the load balancer'
+ Value: !Sub 'http://${ApplicationLoadBalancer.DNSName}'
+ Export:
+ Name: !Sub '${AWS::StackName}-LoadBalancerURL'
+
+ LoadBalancerHTTPSURL:
+ Description: 'HTTPS URL of the load balancer'
+ Value: !Sub 'https://${ApplicationLoadBalancer.DNSName}'
+ Export:
+ Name: !Sub '${AWS::StackName}-LoadBalancerHTTPSURL'
+
+ S3BucketName:
+ Description: 'S3 bucket for file storage'
+ Value: !Ref S3Bucket
+ Export:
+ Name: !Sub '${AWS::StackName}-S3Bucket'
+
+ ECSClusterName:
+ Description: 'ECS Cluster name'
+ Value: !Ref ECSCluster
+ Export:
+ Name: !Sub '${AWS::StackName}-ECSCluster'

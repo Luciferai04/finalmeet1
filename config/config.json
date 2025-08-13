@@ -1,0 +1,22 @@
+{
+    "keyword_extraction_method": "spacy",
+    "huggingface_model": "t5-base",
+    "sample_schema_file": "sample_schema.json",
+    "whisper_model": "custom_classroom_whisper",
+    "whisper_model_path": "./models/custom_classroom_whisper",
+    "real_time_processing": {
+        "vad_threshold": 0.5,
+        "chunk_duration_ms": 100,
+        "sample_rate": 16000,
+        "audio_format": "wav"
+    },
+    "translation": {
+        "target_language": "en",
+        "confidence_threshold": 0.8
+    },
+    "ui": {
+        "enable_webcam": true,
+        "enable_microphone": true,
+        "show_confidence_scores": true
+    }
+}

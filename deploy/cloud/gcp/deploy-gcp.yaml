@@ -1,0 +1,112 @@
+# Google Cloud Platform Deployment Configuration
+# This deploys the Real-Time Translator to GCP using Cloud Run
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+ name: real-time-translator-config
+data:
+ ENVIRONMENT: "production"
+ GCP_PROJECT_ID: "${PROJECT_ID}"
+ GCS_BUCKET: "${PROJECT_ID}-real-time-translator-storage"
+ LOG_LEVEL: "info"
+ WORKERS: "4"
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+ name: real-time-translator-secrets
+type: Opaque
+stringData:
+ GOOGLE_API_KEY: "YOUR_GOOGLE_API_KEY"
+ HUGGINGFACE_API_KEY: "YOUR_HUGGINGFACE_API_KEY"
+ DATABASE_URL: "postgresql://user:password@/db?host=/cloudsql/instance-connection"
+
+---
+# Cloud Run Service Configuration
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+ name: real-time-translator
+ annotations:
+ run.googleapis.com/ingress: all
+ run.googleapis.com/execution-environment: gen2
+ run.googleapis.com/cpu-throttling: "false"
+spec:
+ template:
+ metadata:
+ annotations:
+ run.googleapis.com/execution-environment: gen2
+ run.googleapis.com/memory: "4Gi"
+ run.googleapis.com/cpu: "2"
+ autoscaling.knative.dev/maxScale: "10"
+ autoscaling.knative.dev/minScale: "1"
+ run.googleapis.com/cloudsql-instances: "${PROJECT_ID}:${REGION}:real-time-translator-db"
+ spec:
+ containerConcurrency: 10
+ timeoutSeconds: 3600
+ containers:
+ - image: gcr.io/${PROJECT_ID}/real-time-translator:latest
+ ports:
+ - containerPort: 7860
+ resources:
+ limits:
+ memory: "4Gi"
+ cpu: "2"
+ env:
+ - name: PORT
+ value: "7860"
+ - name: ENVIRONMENT
+ valueFrom:
+ configMapKeyRef:
+ name: real-time-translator-config
+ key: ENVIRONMENT
+ - name: GCP_PROJECT_ID
+ valueFrom:
+ configMapKeyRef:
+ name: real-time-translator-config
+ key: GCP_PROJECT_ID
+ - name: GCS_BUCKET
+ valueFrom:
+ configMapKeyRef:
+ name: real-time-translator-config
+ key: GCS_BUCKET
+ - name: GOOGLE_API_KEY
+ valueFrom:
+ secretKeyRef:
+ name: real-time-translator-secrets
+ key: GOOGLE_API_KEY
+ - name: HUGGINGFACE_API_KEY
+ valueFrom:
+ secretKeyRef:
+ name: real-time-translator-secrets
+ key: HUGGINGFACE_API_KEY
+ - name: DATABASE_URL
+ valueFrom:
+ secretKeyRef:
+ name: real-time-translator-secrets
+ key: DATABASE_URL
+ volumeMounts:
+ - name: cloudsql
+ mountPath: /cloudsql
+ livenessProbe:
+ httpGet:
+ path: /health
+ port: 7860
+ initialDelaySeconds: 30
+ periodSeconds: 30
+ timeoutSeconds: 10
+ readinessProbe:
+ httpGet:
+ path: /health
+ port: 7860
+ initialDelaySeconds: 15
+ periodSeconds: 10
+ timeoutSeconds: 5
+ volumes:
+ - name: cloudsql
+ csi:
+ driver: gce.csi.storage.gke.io/cloudsql
+ volumeAttributes:
+ instanceName: ${PROJECT_ID}:${REGION}:real-time-translator-db

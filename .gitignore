@@ -1,0 +1,217 @@
+# Real-Time Translator - .gitignore
+# =====================================
+
+# OS and editor files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Environment and secrets
+.env.*
+config/.env
+config/.env.*
+config/environments/*.env
+!config/environments/*.env.example
+
+# SSL certificates and keys
+config/ssl/*.pem
+config/ssl/*.key
+config/ssl/*.crt
+config/ssl/*.csr
+config/ssl/certificate.*
+config/ssl/private.*
+config/ssl/fullchain.*
+!config/ssl/README.md
+
+# Logs and runtime data
+logs/
+*.log
+data/logs/
+data/reports/
+data/transcripts/
+data/uploads/
+data/temp/
+data/cache/
+nohup.out
+
+# Keep sample schemas but ignore generated ones
+!data/schemas/
+!data/schemas/*.json
+data/schemas/generated_*
+
+# Monitoring data (keep config templates)
+data/monitoring/prometheus_data/
+data/monitoring/grafana_data/
+
+# Testing and coverage
+.coverage
+.pytest_cache/
+.tox/
+.nox/
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+htmlcov/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# pyenv
+.python-version
+
+# pipenv
+Pipfile.lock
+
+# PEP 582
+__pypackages__/
+
+# Celery stuff
+celerybeat-schedule
+celerybeat.pid
+
+# SageMath parsed files
+*.sage.py
+
+# Spyder project settings
+.spyderproject
+.spyproject
+
+# Rope project settings
+.ropeproject
+
+# mkdocs documentation
+/site
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre type checker
+.pyre/
+
+# Machine Learning Models
+models/
+*.pt
+*.pth
+*.bin
+*.onnx
+*.h5
+*.pkl
+*.joblib
+.cache/
+.torch/
+.huggingface/
+
+# Audio/Video files (usually too large for git)
+*.wav
+*.mp3
+*.mp4
+*.avi
+*.mov
+*.mkv
+
+# Docker
+.docker/
+docker-data/
+.dockerignore
+
+# Redis dumps
+dump.rdb
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# IDE specific
+.vscode/settings.json
+.vscode/launch.json
+.vscode/extensions.json
+.idea/
+
+# Node.js (if any frontend added later)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# MacOS specific
+.AppleDouble
+.LSOverride
+Icon?
+
+# Windows specific
+ehthumbs_vista.db
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+
+# Linux specific
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# Archives
+*.7z
+*.dmg
+*.gz
+*.iso
+*.jar
+*.rar
+*.tar
+*.zip
+
+# Backup files
+*.bak
+*.backup
+*.old
+*.orig

@@ -1,0 +1,406 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "containerGroupName": {
+      "type": "string",
+      "defaultValue": "real-time-translator-group",
+      "metadata": {
+        "description": "Name for the container group"
+      }
+    },
+    "containerImage": {
+      "type": "string",
+      "defaultValue": "realtime.azurecr.io/real-time-translator:latest",
+      "metadata": {
+        "description": "Container image URI"
+      }
+    },
+    "storageAccountName": {
+      "type": "string",
+      "defaultValue": "[concat('rttstorage', uniqueString(resourceGroup().id))]",
+      "metadata": {
+        "description": "Name for the storage account"
+      }
+    },
+    "dnsNameLabel": {
+      "type": "string",
+      "defaultValue": "[concat('real-time-translator-', uniqueString(resourceGroup().id))]",
+      "metadata": {
+        "description": "DNS name label for the public IP"
+      }
+    },
+    "googleApiKey": {
+      "type": "securestring",
+      "metadata": {
+        "description": "Google API Key"
+      }
+    },
+    "huggingfaceApiKey": {
+      "type": "securestring",
+      "metadata": {
+        "description": "Hugging Face API Key"
+      }
+    }
+  },
+  "variables": {
+    "location": "[resourceGroup().location]",
+    "containerName": "real-time-translator",
+    "storageAccountType": "Standard_LRS"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Storage/storageAccounts",
+      "apiVersion": "2021-04-01",
+      "name": "[parameters('storageAccountName')]",
+      "location": "[variables('location')]",
+      "sku": {
+        "name": "[variables('storageAccountType')]"
+      },
+      "kind": "StorageV2",
+      "properties": {
+        "supportsHttpsTrafficOnly": true,
+        "encryption": {
+          "services": {
+            "file": {
+              "keyType": "Account",
+              "enabled": true
+            },
+            "blob": {
+              "keyType": "Account",
+              "enabled": true
+            }
+          },
+          "keySource": "Microsoft.Storage"
+        },
+        "allowBlobPublicAccess": false,
+        "minimumTlsVersion": "TLS1_2"
+      }
+    },
+    {
+      "type": "Microsoft.Storage/storageAccounts/blobServices/containers",
+      "apiVersion": "2021-04-01",
+      "name": "[concat(parameters('storageAccountName'), '/default/uploads')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]"
+      ],
+      "properties": {
+        "publicAccess": "None"
+      }
+    },
+    {
+      "type": "Microsoft.Storage/storageAccounts/blobServices/containers",
+      "apiVersion": "2021-04-01",
+      "name": "[concat(parameters('storageAccountName'), '/default/models')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]"
+      ],
+      "properties": {
+        "publicAccess": "None"
+      }
+    },
+    {
+      "type": "Microsoft.KeyVault/vaults",
+      "apiVersion": "2021-04-01-preview",
+      "name": "[concat('rtt-kv-', uniqueString(resourceGroup().id))]",
+      "location": "[variables('location')]",
+      "properties": {
+        "sku": {
+          "family": "A",
+          "name": "standard"
+        },
+        "tenantId": "[subscription().tenantId]",
+        "accessPolicies": [],
+        "enabledForDeployment": false,
+        "enabledForDiskEncryption": false,
+        "enabledForTemplateDeployment": true,
+        "enableSoftDelete": true,
+        "softDeleteRetentionInDays": 90
+      }
+    },
+    {
+      "type": "Microsoft.KeyVault/vaults/secrets",
+      "apiVersion": "2021-04-01-preview",
+      "name": "[concat('rtt-kv-', uniqueString(resourceGroup().id), '/google-api-key')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.KeyVault/vaults', concat('rtt-kv-', uniqueString(resourceGroup().id)))]"
+      ],
+      "properties": {
+        "value": "[parameters('googleApiKey')]"
+      }
+    },
+    {
+      "type": "Microsoft.KeyVault/vaults/secrets",
+      "apiVersion": "2021-04-01-preview",
+      "name": "[concat('rtt-kv-', uniqueString(resourceGroup().id), '/huggingface-api-key')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.KeyVault/vaults', concat('rtt-kv-', uniqueString(resourceGroup().id)))]"
+      ],
+      "properties": {
+        "value": "[parameters('huggingfaceApiKey')]"
+      }
+    },
+    {
+      "type": "Microsoft.ContainerInstance/containerGroups",
+      "apiVersion": "2021-03-01",
+      "name": "[parameters('containerGroupName')]",
+      "location": "[variables('location')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]"
+      ],
+      "properties": {
+        "containers": [
+          {
+            "name": "[variables('containerName')]",
+            "properties": {
+              "image": "[parameters('containerImage')]",
+              "ports": [
+                {
+                  "protocol": "TCP",
+                  "port": 7860
+                },
+                {
+                  "protocol": "TCP",
+                  "port": 80
+                },
+                {
+                  "protocol": "TCP",
+                  "port": 443
+                }
+              ],
+              "environmentVariables": [
+                {
+                  "name": "ENVIRONMENT",
+                  "value": "production"
+                },
+                {
+                  "name": "AZURE_STORAGE_ACCOUNT",
+                  "value": "[parameters('storageAccountName')]"
+                },
+                {
+                  "name": "AZURE_STORAGE_KEY",
+                  "secureValue": "[listKeys(resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName')), '2021-04-01').keys[0].value]"
+                },
+                {
+                  "name": "GOOGLE_API_KEY",
+                  "secureValue": "[parameters('googleApiKey')]"
+                },
+                {
+                  "name": "HUGGINGFACE_API_KEY",
+                  "secureValue": "[parameters('huggingfaceApiKey')]"
+                },
+                {
+                  "name": "LOG_LEVEL",
+                  "value": "info"
+                },
+                {
+                  "name": "WORKERS",
+                  "value": "4"
+                }
+              ],
+              "resources": {
+                "requests": {
+                  "memoryInGB": 4,
+                  "cpu": 2
+                }
+              },
+              "livenessProbe": {
+                "httpGet": {
+                  "path": "/health",
+                  "port": 7860,
+                  "scheme": "HTTP"
+                },
+                "initialDelaySeconds": 30,
+                "periodSeconds": 30,
+                "failureThreshold": 3,
+                "successThreshold": 1,
+                "timeoutSeconds": 10
+              },
+              "readinessProbe": {
+                "httpGet": {
+                  "path": "/health",
+                  "port": 7860,
+                  "scheme": "HTTP"
+                },
+                "initialDelaySeconds": 15,
+                "periodSeconds": 10,
+                "failureThreshold": 3,
+                "successThreshold": 1,
+                "timeoutSeconds": 5
+              }
+            }
+          }
+        ],
+        "osType": "Linux",
+        "ipAddress": {
+          "type": "Public",
+          "ports": [
+            {
+              "protocol": "TCP",
+              "port": 7860
+            },
+            {
+              "protocol": "TCP",
+              "port": 80
+            },
+            {
+              "protocol": "TCP",
+              "port": 443
+            }
+          ],
+          "dnsNameLabel": "[parameters('dnsNameLabel')]"
+        },
+        "restartPolicy": "Always"
+      }
+    },
+    {
+      "type": "Microsoft.Web/serverfarms",
+      "apiVersion": "2021-02-01",
+      "name": "real-time-translator-plan",
+      "location": "[variables('location')]",
+      "sku": {
+        "name": "B2",
+        "tier": "Basic"
+      },
+      "properties": {
+        "reserved": true
+      },
+      "kind": "linux"
+    },
+    {
+      "type": "Microsoft.Web/sites",
+      "apiVersion": "2021-02-01",
+      "name": "real-time-translator-app",
+      "location": "[variables('location')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Web/serverfarms', 'real-time-translator-plan')]",
+        "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]"
+      ],
+      "properties": {
+        "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', 'real-time-translator-plan')]",
+        "siteConfig": {
+          "linuxFxVersion": "[concat('DOCKER|', parameters('containerImage'))]",
+          "appSettings": [
+            {
+              "name": "ENVIRONMENT",
+              "value": "production"
+            },
+            {
+              "name": "AZURE_STORAGE_ACCOUNT",
+              "value": "[parameters('storageAccountName')]"
+            },
+            {
+              "name": "AZURE_STORAGE_KEY",
+              "value": "[listKeys(resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName')), '2021-04-01').keys[0].value]"
+            },
+            {
+              "name": "GOOGLE_API_KEY",
+              "value": "[parameters('googleApiKey')]"
+            },
+            {
+              "name": "HUGGINGFACE_API_KEY",
+              "value": "[parameters('huggingfaceApiKey')]"
+            },
+            {
+              "name": "LOG_LEVEL",
+              "value": "info"
+            },
+            {
+              "name": "WORKERS",
+              "value": "4"
+            },
+            {
+              "name": "WEBSITES_ENABLE_APP_SERVICE_STORAGE",
+              "value": "false"
+            },
+            {
+              "name": "WEBSITES_PORT",
+              "value": "7860"
+            }
+          ]
+        },
+        "httpsOnly": true
+      }
+    },
+    {
+      "type": "Microsoft.Insights/autoscalesettings",
+      "apiVersion": "2015-04-01",
+      "name": "real-time-translator-autoscale",
+      "location": "[variables('location')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Web/sites', 'real-time-translator-app')]"
+      ],
+      "properties": {
+        "name": "real-time-translator-autoscale",
+        "targetResourceUri": "[resourceId('Microsoft.Web/sites', 'real-time-translator-app')]",
+        "enabled": true,
+        "profiles": [
+          {
+            "name": "DefaultAutoscaleProfile",
+            "capacity": {
+              "minimum": "1",
+              "maximum": "10",
+              "default": "2"
+            },
+            "rules": [
+              {
+                "metricTrigger": {
+                  "metricName": "CpuPercentage",
+                  "metricResourceUri": "[resourceId('Microsoft.Web/sites', 'real-time-translator-app')]",
+                  "timeGrain": "PT1M",
+                  "statistic": "Average",
+                  "timeWindow": "PT5M",
+                  "timeAggregation": "Average",
+                  "operator": "GreaterThan",
+                  "threshold": 70
+                },
+                "scaleAction": {
+                  "direction": "Increase",
+                  "type": "ChangeCount",
+                  "value": "1",
+                  "cooldown": "PT5M"
+                }
+              },
+              {
+                "metricTrigger": {
+                  "metricName": "CpuPercentage",
+                  "metricResourceUri": "[resourceId('Microsoft.Web/sites', 'real-time-translator-app')]",
+                  "timeGrain": "PT1M",
+                  "statistic": "Average",
+                  "timeWindow": "PT5M",
+                  "timeAggregation": "Average",
+                  "operator": "LessThan",
+                  "threshold": 30
+                },
+                "scaleAction": {
+                  "direction": "Decrease",
+                  "type": "ChangeCount",
+                  "value": "1",
+                  "cooldown": "PT5M"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "outputs": {
+    "containerFQDN": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.ContainerInstance/containerGroups', parameters('containerGroupName'))).ipAddress.fqdn]"
+    },
+    "appServiceURL": {
+      "type": "string",
+      "value": "[concat('https://', reference(resourceId('Microsoft.Web/sites', 'real-time-translator-app')).defaultHostName)]"
+    },
+    "storageAccountName": {
+      "type": "string",
+      "value": "[parameters('storageAccountName')]"
+    },
+    "storageAccountKey": {
+      "type": "string",
+      "value": "[listKeys(resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName')), '2021-04-01').keys[0].value]"
+    }
+  }
+}

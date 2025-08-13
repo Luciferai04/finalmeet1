@@ -1,0 +1,10 @@
+{
+    "class_id": "CS101",
+    "date": "2025-07-02",
+    "expected_topics": [
+        "Introduction to Python",
+        "Data Types",
+        "Variables",
+        "Operators"
+    ]
+}
