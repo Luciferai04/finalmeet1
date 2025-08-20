@@ -171,8 +171,8 @@ docker-compose -f deploy/docker/docker-compose.prod.yml up
 4. **Response** → UI/API response
 
 This structure ensures:
-- ✅ Clear separation of concerns
-- ✅ Scalable architecture
-- ✅ Production readiness
-- ✅ Easy maintenance and deployment
-- ✅ Comprehensive testing support
+-  Clear separation of concerns
+-  Scalable architecture
+-  Production readiness
+-  Easy maintenance and deployment
+-  Comprehensive testing support

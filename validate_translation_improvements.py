@@ -77,7 +77,7 @@ class TranslationQualityValidator:
             "comparison_summary": {}
         }
         
-        print("🔍 Running translation quality validation...")
+        print(" Running translation quality validation...")
         print(f"Testing {len(self.test_cases)} test cases\n")
         
         for i, test_case in enumerate(self.test_cases, 1):
@@ -142,12 +142,12 @@ class TranslationQualityValidator:
     
     def _compare_results(self, basic_result: Dict, advanced_result: Dict, test_num: int):
         """Compare and display results from both engines."""
-        print(f"  📊 Basic Engine:")
+        print(f"   Basic Engine:")
         print(f"    Translation: {basic_result['translated_text']}")
         print(f"    Quality: {basic_result['quality_score']:.2f}")
         print(f"    Time: {basic_result['processing_time']:.2f}s")
         
-        print(f"  🚀 Advanced Engine:")
+        print(f"   Advanced Engine:")
         print(f"    Translation: {advanced_result['translated_text']}")
         print(f"    Quality: {advanced_result['quality_score']:.2f}")
         print(f"    Domain: {advanced_result.get('domain_detected', 'N/A')}")
@@ -156,9 +156,9 @@ class TranslationQualityValidator:
         # Quality improvement
         quality_improvement = advanced_result['quality_score'] - basic_result['quality_score']
         if quality_improvement > 0:
-            print(f"  ✅ Quality improved by {quality_improvement:.2f}")
+            print(f"   Quality improved by {quality_improvement:.2f}")
         elif quality_improvement < 0:
-            print(f"  ⚠️  Quality decreased by {abs(quality_improvement):.2f}")
+            print(f"    Quality decreased by {abs(quality_improvement):.2f}")
         else:
             print(f"  ➡️  Quality unchanged")
     
@@ -199,7 +199,7 @@ class TranslationQualityValidator:
         summary = results["comparison_summary"]
         
         print("\n" + "="*60)
-        print("🎯 TRANSLATION QUALITY VALIDATION SUMMARY")
+        print(" TRANSLATION QUALITY VALIDATION SUMMARY")
         print("="*60)
         
         print(f"\n📈 BASIC ENGINE PERFORMANCE:")
@@ -207,12 +207,12 @@ class TranslationQualityValidator:
         print(f"  Average Processing Time: {summary['basic_engine']['average_processing_time']:.3f}s")
         print(f"  Success Rate: {summary['basic_engine']['success_rate']:.1%}")
         
-        print(f"\n🚀 ADVANCED ENGINE PERFORMANCE:")
+        print(f"\n ADVANCED ENGINE PERFORMANCE:")
         print(f"  Average Quality Score: {summary['advanced_engine']['average_quality_score']:.3f}")
         print(f"  Average Processing Time: {summary['advanced_engine']['average_processing_time']:.3f}s")
         print(f"  Success Rate: {summary['advanced_engine']['success_rate']:.1%}")
         
-        print(f"\n📊 IMPROVEMENTS:")
+        print(f"\n IMPROVEMENTS:")
         quality_imp = summary['improvements']['quality_improvement']
         time_diff = summary['improvements']['time_difference']
         success_imp = summary['improvements']['success_rate_improvement']
@@ -223,17 +223,17 @@ class TranslationQualityValidator:
         
         # Overall assessment
         if quality_imp > 0.1:
-            print(f"\n✅ VALIDATION PASSED: Significant quality improvements detected!")
+            print(f"\n VALIDATION PASSED: Significant quality improvements detected!")
         elif quality_imp > 0:
-            print(f"\n✅ VALIDATION PASSED: Quality improvements detected.")
+            print(f"\n VALIDATION PASSED: Quality improvements detected.")
         else:
-            print(f"\n⚠️  VALIDATION WARNING: No significant quality improvements detected.")
+            print(f"\n  VALIDATION WARNING: No significant quality improvements detected.")
 
 
 def main():
     """Main validation function."""
     try:
-        print("🚀 Starting Translation Quality Validation")
+        print(" Starting Translation Quality Validation")
         print("-" * 50)
         
         # Initialize validator
@@ -250,10 +250,10 @@ def main():
         with open(results_file, 'w') as f:
             json.dump(results, f, indent=2)
         
-        print(f"\n💾 Detailed results saved to: {results_file}")
+        print(f"\n Detailed results saved to: {results_file}")
         
     except Exception as e:
-        print(f"❌ Validation failed: {str(e)}")
+        print(f" Validation failed: {str(e)}")
         sys.exit(1)
 
 

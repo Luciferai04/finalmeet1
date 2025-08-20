@@ -4,7 +4,7 @@
 
 The Real-Time Translator is a state-of-the-art application for real-time speech translation with advanced AI capabilities. It features a next-generation **Advanced Translation Engine** with context awareness, quality assessment, and cultural adaptation, powered by Google Gemini AI and WhisperLive for seamless real-time translation experiences.
 
-## 🚀 Key Features
+## Key Features
 
 ### **Advanced Translation Engine**
 - **Context-Aware Translation**: Maintains conversation history and adapts to context

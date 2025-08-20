@@ -12,7 +12,7 @@ from pathlib import Path
 
 def validate_structure():
     """Validate the project structure"""
-    print("🔍 Validating Real-Time Translator project structure...")
+    print(" Validating Real-Time Translator project structure...")
     print("=" * 60)
     
     # Add src to path
@@ -43,9 +43,9 @@ def validate_structure():
     print("📁 Checking required directories...")
     for dir_path in required_dirs:
         if os.path.exists(dir_path):
-            successes.append(f"✅ {dir_path}/")
+            successes.append(f" {dir_path}/")
         else:
-            errors.append(f"❌ Missing directory: {dir_path}/")
+            errors.append(f" Missing directory: {dir_path}/")
     
     # Required files
     required_files = [
@@ -65,47 +65,47 @@ def validate_structure():
     print("\n📄 Checking required files...")
     for file_path in required_files:
         if os.path.exists(file_path):
-            successes.append(f"✅ {file_path}")
+            successes.append(f" {file_path}")
         else:
-            errors.append(f"❌ Missing file: {file_path}")
+            errors.append(f" Missing file: {file_path}")
     
     # Test imports
-    print("\n🔗 Testing critical imports...")
+    print("\n Testing critical imports...")
     try:
         from src.core.config import Config
-        successes.append("✅ Import src.core.config")
+        successes.append(" Import src.core.config")
     except ImportError as e:
-        errors.append(f"❌ Import error src.core.config: {e}")
+        errors.append(f" Import error src.core.config: {e}")
     
     try:
         from src.api.flask_api_fixed import app
-        successes.append("✅ Import src.api.flask_api_fixed")
+        successes.append(" Import src.api.flask_api_fixed")
     except ImportError as e:
-        errors.append(f"❌ Import error src.api.flask_api_fixed: {e}")
+        errors.append(f" Import error src.api.flask_api_fixed: {e}")
     
     # Print results
     print("\n" + "=" * 60)
-    print("📊 VALIDATION RESULTS")
+    print(" VALIDATION RESULTS")
     print("=" * 60)
     
     if successes:
-        print(f"\n✅ SUCCESSES ({len(successes)}):")
+        print(f"\n SUCCESSES ({len(successes)}):")
         for success in successes:
             print(f"   {success}")
     
     if errors:
-        print(f"\n❌ ERRORS ({len(errors)}):")
+        print(f"\n ERRORS ({len(errors)}):")
         for error in errors:
             print(f"   {error}")
-        print(f"\n❗ Fix the above {len(errors)} error(s) before proceeding.")
+        print(f"\n Fix the above {len(errors)} error(s) before proceeding.")
         return False
     else:
-        print(f"\n🎉 All {len(successes)} checks passed! Structure is valid.")
+        print(f"\n All {len(successes)} checks passed! Structure is valid.")
         return True
 
 def print_structure():
     """Print the current project structure"""
-    print("\n📋 CURRENT PROJECT STRUCTURE:")
+    print("\n CURRENT PROJECT STRUCTURE:")
     print("=" * 60)
     
     def print_tree(directory, prefix="", max_depth=3, current_depth=0):
@@ -144,7 +144,7 @@ if __name__ == "__main__":
     print_structure()
     
     if success:
-        print("\n🚀 Ready for production deployment!")
+        print("\n Ready for production deployment!")
         print("\nNext steps:")
         print("1. Set environment variables (GOOGLE_API_KEY, etc.)")
         print("2. Test with: python run_ui.py")

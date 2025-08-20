@@ -20,16 +20,16 @@ def test_basic_imports():
     
     try:
         from src.ui.live_camera_enhanced_ui import LiveCameraEnhancedUI
-        print("✅ LiveCameraEnhancedUI imported successfully")
+        print(" LiveCameraEnhancedUI imported successfully")
     except ImportError as e:
-        print(f"❌ Failed to import LiveCameraEnhancedUI: {e}")
+        print(f" Failed to import LiveCameraEnhancedUI: {e}")
         return False
     
     try:
         from src.services.whisper_live.client import Client as WhisperLiveClient
-        print("✅ WhisperLiveClient imported successfully")
+        print(" WhisperLiveClient imported successfully")
     except ImportError as e:
-        print(f"❌ Failed to import WhisperLiveClient: {e}")
+        print(f" Failed to import WhisperLiveClient: {e}")
         return False
         
     return True
@@ -43,17 +43,17 @@ def test_ui_initialization():
     try:
         from src.ui.live_camera_enhanced_ui import LiveCameraEnhancedUI
         ui = LiveCameraEnhancedUI()
-        print("✅ UI initialized successfully")
+        print(" UI initialized successfully")
         
         # Test basic components
-        print(f"✅ RL Coordinator: {ui.rl_coordinator is not None}")
-        print(f"✅ Audio Processor: {ui.audio_processor is not None}")
-        print(f"✅ Video Processor: {ui.video_processor is not None}")
-        print(f"✅ Gemini Model: {ui.gemini_model is not None}")
+        print(f" RL Coordinator: {ui.rl_coordinator is not None}")
+        print(f" Audio Processor: {ui.audio_processor is not None}")
+        print(f" Video Processor: {ui.video_processor is not None}")
+        print(f" Gemini Model: {ui.gemini_model is not None}")
         
         return ui
     except Exception as e:
-        print(f"❌ UI initialization failed: {e}")
+        print(f" UI initialization failed: {e}")
         return None
 
 def test_translation_pipeline(ui):
@@ -63,7 +63,7 @@ def test_translation_pipeline(ui):
     print("=" * 60)
     
     if not ui:
-        print("❌ Cannot test translation - UI not initialized")
+        print(" Cannot test translation - UI not initialized")
         return False
     
     # Test transcription callback
@@ -71,7 +71,7 @@ def test_translation_pipeline(ui):
     sample_segments = [{"text": sample_text, "start": 0.0, "end": 2.0}]
     
     try:
-        print(f"📝 Testing transcription callback with: '{sample_text}'")
+        print(f" Testing transcription callback with: '{sample_text}'")
         ui.on_transcription_received(sample_text, sample_segments)
         
         # Wait a moment for processing
@@ -80,21 +80,21 @@ def test_translation_pipeline(ui):
         # Check if text was added to queue
         if not ui.live_transcript_queue.empty():
             received_text = ui.live_transcript_queue.get()
-            print(f"✅ Transcript queue received: '{received_text}'")
+            print(f" Transcript queue received: '{received_text}'")
         else:
-            print("⚠️  No text in transcript queue")
+            print("  No text in transcript queue")
         
         # Check session history
         if ui.session_history:
             latest_entry = ui.session_history[-1]
-            print(f"✅ Session history updated: {latest_entry['original_text']}")
+            print(f" Session history updated: {latest_entry['original_text']}")
         else:
-            print("⚠️  Session history empty")
+            print("  Session history empty")
             
         return True
         
     except Exception as e:
-        print(f"❌ Translation pipeline test failed: {e}")
+        print(f" Translation pipeline test failed: {e}")
         return False
 
 def test_server_connection_validation(ui):
@@ -104,19 +104,19 @@ def test_server_connection_validation(ui):
     print("=" * 60)
     
     if not ui:
-        print("❌ Cannot test connection - UI not initialized")
+        print(" Cannot test connection - UI not initialized")
         return False
     
     try:
         # Test connection to default server (should fail if not running)
         is_connected = ui.audio_processor.validate_server_connection()
-        print(f"🔌 Server connection status: {'✅ Connected' if is_connected else '❌ Not connected'}")
+        print(f"🔌 Server connection status: {' Connected' if is_connected else ' Not connected'}")
         
         # Test with different host/port
         ui.audio_processor.whisper_host = "nonexistent.host"
         ui.audio_processor.whisper_port = 99999
         is_connected_invalid = ui.audio_processor.validate_server_connection()
-        print(f"🔌 Invalid server test: {'❌ Should fail' if is_connected_invalid else '✅ Correctly failed'}")
+        print(f"🔌 Invalid server test: {' Should fail' if is_connected_invalid else ' Correctly failed'}")
         
         # Reset to default
         ui.audio_processor.whisper_host = "localhost"
@@ -125,7 +125,7 @@ def test_server_connection_validation(ui):
         return True
         
     except Exception as e:
-        print(f"❌ Connection validation test failed: {e}")
+        print(f" Connection validation test failed: {e}")
         return False
 
 def test_system_status(ui):
@@ -135,30 +135,30 @@ def test_system_status(ui):
     print("=" * 60)
     
     if not ui:
-        print("❌ Cannot test status - UI not initialized")
+        print(" Cannot test status - UI not initialized")
         return False
     
     try:
         status = ui.get_system_status()
-        print("✅ System status retrieved successfully")
+        print(" System status retrieved successfully")
         
         # Check key components
         basic_components = status.get('basic_components', {})
         whisper_live_status = status.get('whisper_live_status', {})
         
-        print(f"📊 Basic Components Status:")
+        print(f" Basic Components Status:")
         for component, status_val in basic_components.items():
-            status_icon = "✅" if status_val else "❌"
+            status_icon = "" if status_val else ""
             print(f"   {status_icon} {component}: {status_val}")
         
-        print(f"📊 WhisperLive Status:")
+        print(f" WhisperLive Status:")
         for key, value in whisper_live_status.items():
             print(f"   • {key}: {value}")
         
         return True
         
     except Exception as e:
-        print(f"❌ System status test failed: {e}")
+        print(f" System status test failed: {e}")
         return False
 
 def test_gradio_interface(ui):
@@ -168,23 +168,23 @@ def test_gradio_interface(ui):
     print("=" * 60)
     
     if not ui:
-        print("❌ Cannot test interface - UI not initialized")
+        print(" Cannot test interface - UI not initialized")
         return False
     
     try:
         import gradio as gr
         interface = ui.create_interface()
-        print("✅ Gradio interface created successfully")
-        print(f"📱 Interface type: {type(interface)}")
+        print(" Gradio interface created successfully")
+        print(f" Interface type: {type(interface)}")
         return True
         
     except Exception as e:
-        print(f"❌ Interface creation failed: {e}")
+        print(f" Interface creation failed: {e}")
         return False
 
 def main():
     """Run all tests"""
-    print("🧪 WhisperLive Translation Pipeline Test Suite")
+    print(" WhisperLive Translation Pipeline Test Suite")
     print("=" * 60)
     
     results = []
@@ -218,21 +218,21 @@ def main():
     total = len(results)
     
     for test_name, result in results:
-        status_icon = "✅ PASS" if result else "❌ FAIL"
+        status_icon = " PASS" if result else " FAIL"
         print(f"{status_icon} {test_name}")
         if result:
             passed += 1
     
-    print(f"\n📊 Overall: {passed}/{total} tests passed")
+    print(f"\n Overall: {passed}/{total} tests passed")
     
     if passed == total:
-        print("🎉 All tests passed! The translation pipeline is working correctly.")
-        print("\n💡 Next steps:")
+        print(" All tests passed! The translation pipeline is working correctly.")
+        print("\n Next steps:")
         print("   1. Start WhisperLive server: python -m whisper_live.server --port 9090")
         print("   2. Set GOOGLE_API_KEY for translations: export GOOGLE_API_KEY='your_key'")
         print("   3. Run the UI: python src/ui/live_camera_enhanced_ui.py")
     else:
-        print("⚠️  Some tests failed. Check the error messages above.")
+        print("  Some tests failed. Check the error messages above.")
     
     return passed == total
 
