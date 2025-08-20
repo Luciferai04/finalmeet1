@@ -8,158 +8,173 @@ The Real-Time Translation System is a production-ready, scalable application for
 
 ### High-Level Architecture
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                    CLIENT INTERFACES                           │
-├─────────────────────────────────────────────────────────────────┤
-│ Web UI (Gradio) │ REST API Client │ WebSocket Client │ Mobile    │
-│      :7860      │    HTTP/HTTPS   │   Socket.IO      │   App     │
-└─────────────┬───┴─────────────────┴──────────────────┴───────────┘
-              │
-              ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                    LOAD BALANCER / NGINX                       │
-│                        :80 / :443                              │
-└─────────────────────────┬───────────────────────────────────────┘
-                          │
-                          ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                    FLASK APPLICATION                           │
-│                         :5001                                  │
-├─────────────────────────────────────────────────────────────────┤
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────────┐  │
-│  │   API       │  │  WebSocket  │  │      Application        │  │
-│  │ Blueprint   │  │  Service    │  │       Factory           │  │
-│  │             │  │             │  │                         │  │
-│  │ /api/*      │  │ Socket.IO   │  │  Configuration          │  │
-│  │             │  │             │  │  CORS & Security        │  │
-│  └─────────────┘  └─────────────┘  └─────────────────────────┘  │
-└─────────────┬───────────────┬───────────────────────────────────┘
-              │               │
-              ▼               ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                    SERVICE LAYER                               │
-├─────────────────────────────────────────────────────────────────┤
-│ ┌───────────────┐ ┌──────────────┐ ┌────────────────────────┐   │
-│ │  Translation  │ │    Schema    │ │     Enhanced           │   │
-│ │   Service     │ │   Service    │ │   Translation          │   │
-│ │               │ │              │ │     Service            │   │
-│ │ • Session Mgmt│ │ • Schema Mgmt│ │ • AI Optimization      │   │
-│ │ • Google      │ │ • Validation │ │ • Quality Assessment   │   │
-│ │   Gemini API  │ │ • Processing │ │ • Cultural Adaptation  │   │
-│ └───────────────┘ └──────────────┘ └────────────────────────┘   │
-└─────────────┬───────────────┬─────────────────────────────────────┘
-              │               │
-              ▼               ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                   EXTERNAL SERVICES                            │
-├─────────────────────────────────────────────────────────────────┤
-│ ┌──────────────┐ ┌─────────────┐ ┌──────────────┐ ┌──────────┐ │
-│ │ Google       │ │   Redis     │ │ WhisperLive  │ │  File    │ │
-│ │ Gemini API   │ │   Cache     │ │   Server     │ │ Storage  │ │
-│ │              │ │   :6379     │ │   :9090      │ │          │ │
-│ │ Translation  │ │             │ │              │ │ Schemas/ │ │
-│ │ & AI Models  │ │ Session     │ │ Real-time    │ │ Uploads/ │ │
-│ │              │ │ Storage     │ │ Speech-to-   │ │ Logs     │ │
-│ │              │ │             │ │ Text         │ │          │ │
-│ └──────────────┘ └─────────────┘ └──────────────┘ └──────────┘ │
-└─────────────────────────────────────────────────────────────────┘
+```mermaid
+graph TD
+    subgraph "Client Layer"
+        A[Web UI<br/>Gradio :7860] 
+        B[REST API Client<br/>HTTP/HTTPS]
+        C[WebSocket Client<br/>Socket.IO]
+        D[Mobile App]
+    end
+    
+    subgraph "Load Balancer"
+        E[Nginx<br/>:80 / :443]
+    end
+    
+    subgraph "Application Layer"
+        F[Flask Application<br/>:5001]
+        subgraph "Flask Components"
+            G[API Blueprint<br/>/api/*]
+            H[WebSocket Service<br/>Socket.IO]
+            I[App Factory<br/>Config & CORS]
+        end
+    end
+    
+    subgraph "Service Layer"
+        J[Translation Service<br/>• Session Mgmt<br/>• Google Gemini API]
+        K[Schema Service<br/>• Schema Mgmt<br/>• Validation<br/>• Processing]
+        L[Enhanced Translation<br/>• AI Optimization<br/>• Quality Assessment<br/>• Cultural Adaptation]
+    end
+    
+    subgraph "External Services"
+        M[Google Gemini API<br/>Translation & AI Models]
+        N[Redis Cache<br/>:6379<br/>Session Storage]
+        O[WhisperLive Server<br/>:9090<br/>Real-time Speech-to-Text]
+        P[File Storage<br/>Schemas/<br/>Uploads/<br/>Logs]
+    end
+    
+    A --> E
+    B --> E
+    C --> E
+    D --> E
+    E --> F
+    F --> G
+    F --> H
+    F --> I
+    G --> J
+    G --> K
+    H --> J
+    I --> J
+    J --> L
+    J --> M
+    J --> N
+    K --> P
+    L --> M
+    H --> O
+    
+    style A fill:#e1f5fe
+    style B fill:#e1f5fe
+    style C fill:#e1f5fe
+    style D fill:#e1f5fe
+    style E fill:#f3e5f5
+    style F fill:#e8f5e8
+    style M fill:#fff3e0
+    style N fill:#fff3e0
+    style O fill:#fff3e0
+    style P fill:#fff3e0
 ```
 
 ### Component Architecture
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                      MAIN APPLICATION                          │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  main.py ──────▶ wsgi.py ──────▶ gunicorn/production           │
-│      │                                                          │
-│      ▼                                                          │
-│  src/core/app_factory.py ──────▶ Flask App Instance            │
-│      │                                                          │
-│      ├──▶ Configuration Management                              │
-│      ├──▶ CORS Setup                                           │
-│      ├──▶ Blueprint Registration                                │
-│      └──▶ WebSocket Integration                                 │
-│                                                                 │
-├─────────────────────────────────────────────────────────────────┤
-│                      API LAYER                                 │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  src/api/routes.py                                             │
-│      │                                                          │
-│      ├──▶ /health          - Health checks                     │
-│      ├──▶ /api/translate    - Text translation                 │
-│      ├──▶ /api/schemas      - Schema management                │
-│      ├──▶ /api/sessions     - Session tracking                 │
-│      ├──▶ /api/process      - Session processing               │
-│      └──▶ /api/reports      - Analytics & reporting            │
-│                                                                 │
-├─────────────────────────────────────────────────────────────────┤
-│                    SERVICE LAYER                               │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  ┌─ src/services/translation_service.py                        │
-│  │   ├─ Google Gemini AI Integration                           │
-│  │   ├─ Session Management                                     │
-│  │   ├─ Quality Assessment                                     │
-│  │   └─ Performance Metrics                                   │
-│  │                                                             │
-│  ├─ src/services/schema_service.py                             │
-│  │   ├─ Schema Validation                                      │
-│  │   ├─ File Management                                        │
-│  │   └─ Comparison Tools                                       │
-│  │                                                             │
-│  ├─ src/services/websocket_service.py                          │
-│  │   ├─ Real-time Communication                                │
-│  │   ├─ Audio Streaming                                        │
-│  │   └─ Event Broadcasting                                     │
-│  │                                                             │
-│  └─ src/services/enhanced_translation_service.py               │
-│      ├─ Advanced AI Processing                                 │
-│      ├─ Cultural Context Adaptation                            │
-│      └─ Multi-model Integration                                │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
+```mermaid
+graph TB
+    subgraph "Application Entry Points"
+        A[main.py<br/>Development Entry]
+        B[wsgi.py<br/>Production Entry]
+        C[gunicorn<br/>Production Server]
+    end
+    
+    subgraph "Flask Application Factory"
+        D[src/core/app_factory.py]
+        E[Configuration Management]
+        F[CORS Setup]
+        G[Blueprint Registration]
+        H[WebSocket Integration]
+    end
+    
+    subgraph "API Layer"
+        I[src/api/routes.py]
+        I1["/health - Health checks"]
+        I2["/api/translate - Text translation"]
+        I3["/api/schemas - Schema management"]
+        I4["/api/sessions - Session tracking"]
+        I5["/api/process - Session processing"]
+        I6["/api/reports - Analytics & reporting"]
+    end
+    
+    subgraph "Service Layer"
+        J[Translation Service<br/>• Google Gemini AI Integration<br/>• Session Management<br/>• Quality Assessment<br/>• Performance Metrics]
+        K[Schema Service<br/>• Schema Validation<br/>• File Management<br/>• Comparison Tools]
+        L[WebSocket Service<br/>• Real-time Communication<br/>• Audio Streaming<br/>• Event Broadcasting]
+        M[Enhanced Translation Service<br/>• Advanced AI Processing<br/>• Cultural Context Adaptation<br/>• Multi-model Integration]
+    end
+    
+    A --> D
+    B --> D
+    B --> C
+    C --> D
+    D --> E
+    D --> F
+    D --> G
+    D --> H
+    G --> I
+    I --> I1
+    I --> I2
+    I --> I3
+    I --> I4
+    I --> I5
+    I --> I6
+    I --> J
+    I --> K
+    H --> L
+    J --> M
+    
+    style A fill:#e3f2fd
+    style B fill:#e3f2fd
+    style C fill:#e3f2fd
+    style D fill:#f1f8e9
+    style I fill:#fff8e1
+    style J fill:#fce4ec
+    style K fill:#fce4ec
+    style L fill:#fce4ec
+    style M fill:#fce4ec
 ```
 
 ### Data Flow Architecture
 
-```
-┌─────────────┐    ┌──────────────┐    ┌─────────────────┐
-│   Client    │    │  Load        │    │   Flask         │
-│ Application │◄──►│ Balancer/    │◄──►│ Application     │
-│             │    │  Nginx       │    │                 │
-└─────────────┘    └──────────────┘    └─────────────────┘
-       │                                        │
-       │ 1. HTTP/WebSocket Request               │
-       ▼                                        ▼
-┌─────────────┐                        ┌─────────────────┐
-│  API        │                        │  Service Layer  │
-│ Validation  │                        │                 │
-│ & Routing   │                        │ • Translation   │
-└─────────────┘                        │ • Schema        │
-       │                               │ • WebSocket     │
-       │ 2. Route to Service           └─────────────────┘
-       ▼                                        │
-┌─────────────┐    ┌──────────────┐           │
-│ Translation │◄──►│   Redis      │           │ 3. Process Request
-│  Service    │    │   Cache      │           ▼
-│             │    │              │  ┌─────────────────┐
-│ • Gemini    │    │ • Sessions   │  │ External APIs   │
-│   API       │    │ • Cache      │  │                 │
-│ • Session   │    │              │  │ • Google Gemini │
-│   Mgmt      │    └──────────────┘  │ • WhisperLive   │
-└─────────────┘                      │                 │
-       │                             └─────────────────┘
-       │ 4. Return Response                   │
-       ▼                                     │
-┌─────────────┐    ┌──────────────┐         │ 5. AI Processing
-│   Client    │◄───│  Response    │◄────────┘
-│  Response   │    │  Formatting  │
-│             │    │              │
-└─────────────┘    └──────────────┘
+```mermaid
+sequenceDiagram
+    participant Client as Client Application
+    participant LB as Load Balancer/Nginx
+    participant Flask as Flask Application
+    participant API as API Validation & Routing
+    participant Service as Service Layer
+    participant Redis as Redis Cache
+    participant Gemini as Google Gemini API
+    participant Whisper as WhisperLive
+    participant Response as Response Formatting
+    
+    Client->>LB: 1. HTTP/WebSocket Request
+    LB->>Flask: Forward Request
+    Flask->>API: Route to API Layer
+    API->>Service: 2. Route to Service
+    
+    Service->>Redis: Store Session Data
+    Service->>Gemini: 3. Process Request (Translation)
+    Service->>Whisper: 3. Process Request (Audio)
+    
+    Gemini-->>Service: AI Processing Result
+    Whisper-->>Service: Speech-to-Text Result
+    
+    Service->>Response: 4. Prepare Response
+    Response->>API: Formatted Response
+    API->>Flask: API Response
+    Flask->>LB: Application Response
+    LB->>Client: Final Response
+    
+    Note over Service,Redis: Session Management & Caching
+    Note over Service,Gemini: AI Translation Processing
+    Note over Service,Whisper: Real-time Audio Processing
 ```
 
 ## Key Features
@@ -345,52 +360,52 @@ socket.on('transcription_result', (data) => {
 
 ### Container Deployment
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                    DOCKER DEPLOYMENT                           │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  docker-compose.prod.yml                                       │
-│                                                                 │
-│  ┌─────────────────────────────────────────────────────────┐   │
-│  │                   nginx                                 │   │
-│  │            (Load Balancer)                              │   │
-│  │              ports: 80, 443                             │   │
-│  │          volumes: ./ssl-certs                           │   │
-│  └─────────────────────────────────────────────────────────┘   │
-│                              │                                 │
-│                              ▼                                 │
-│  ┌─────────────────────────────────────────────────────────┐   │
-│  │                flask-app                                │   │
-│  │           (Python Application)                          │   │
-│  │              port: 5001                                 │   │
-│  │         environment: production                         │   │
-│  │       volumes: ./data, ./config                         │   │
-│  └─────────────────────────────────────────────────────────┘   │
-│                              │                                 │
-│                              ▼                                 │
-│  ┌─────────────────────────────────────────────────────────┐   │
-│  │                   redis                                 │   │
-│  │            (Session Storage)                            │   │
-│  │              port: 6379                                 │   │
-│  │       volumes: ./data/redis                             │   │
-│  └─────────────────────────────────────────────────────────┘   │
-│                              │                                 │
-│                              ▼                                 │
-│  ┌─────────────────────────────────────────────────────────┐   │
-│  │               prometheus                                │   │
-│  │            (Metrics Collection)                         │   │
-│  │              port: 9090                                 │   │
-│  └─────────────────────────────────────────────────────────┘   │
-│                              │                                 │
-│                              ▼                                 │
-│  ┌─────────────────────────────────────────────────────────┐   │
-│  │                grafana                                  │   │
-│  │            (Metrics Dashboard)                          │   │
-│  │              port: 3000                                 │   │
-│  └─────────────────────────────────────────────────────────┘   │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
+```mermaid
+graph TB
+    subgraph "Docker Compose Production Stack"
+        subgraph "docker-compose.prod.yml"
+            A[nginx<br/>Load Balancer<br/>Ports: 80, 443<br/>Volumes: ./ssl-certs]
+            
+            B[flask-app<br/>Python Application<br/>Port: 5001<br/>Environment: production<br/>Volumes: ./data, ./config]
+            
+            C[redis<br/>Session Storage<br/>Port: 6379<br/>Volumes: ./data/redis]
+            
+            D[prometheus<br/>Metrics Collection<br/>Port: 9090<br/>Config: ./monitoring/prometheus.yml]
+            
+            E[grafana<br/>Metrics Dashboard<br/>Port: 3000<br/>Datasources: Prometheus]
+        end
+    end
+    
+    subgraph "External Access"
+        F[External Clients<br/>:80 / :443]
+    end
+    
+    subgraph "Data Persistence"
+        G[./data/<br/>Application Data]
+        H[./ssl-certs/<br/>SSL Certificates]
+        I[./monitoring/<br/>Config Files]
+    end
+    
+    F --> A
+    A --> B
+    B --> C
+    B --> D
+    D --> E
+    
+    B --> G
+    A --> H
+    D --> I
+    C --> G
+    
+    style A fill:#e3f2fd
+    style B fill:#e8f5e8
+    style C fill:#fff3e0
+    style D fill:#fce4ec
+    style E fill:#f3e5f5
+    style F fill:#e0f2f1
+    style G fill:#f9f9f9
+    style H fill:#f9f9f9
+    style I fill:#f9f9f9
 ```
 
 ### Cloud Deployment Options
