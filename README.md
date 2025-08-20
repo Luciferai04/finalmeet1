@@ -48,8 +48,8 @@ For detailed information, refer to the [Project Structure Documentation](docs/PR
 
 1. **Clone the Repository**:
     ```bash
-    git clone https://github.com/yourusername/real-time-translator.git
-    cd real-time-translator
+git clone https://github.com/Luciferai04/finalmeet1.git
+cd finalmeet1
     ```
 
 2. **Install Dependencies**:

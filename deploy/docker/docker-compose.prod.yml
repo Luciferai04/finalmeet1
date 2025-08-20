@@ -20,8 +20,8 @@ services:
   # Main application
   app:
     build:
-      context: .
-      dockerfile: Dockerfile.prod
+      context: ../../
+      dockerfile: deploy/docker/Dockerfile.prod
     container_name: translator_app
     restart: unless-stopped
     ports:
@@ -56,6 +56,7 @@ services:
       - "443:443"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
       - ./ssl:/etc/nginx/ssl:ro
       - ./logs:/var/log/nginx
     depends_on:

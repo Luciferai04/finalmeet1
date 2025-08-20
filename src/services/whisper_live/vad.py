@@ -34,7 +34,7 @@ class VoiceActivityDetection():
     def _validate_input(self, x, sr: int):
         if x.dim() == 1:
             x = x.unsqueeze(0)
-        if x.dim()  2:
+        if x.dim() > 2:
             raise ValueError(f"Too many dimensions for input audio chunk {x.dim()}")
 
         if sr != 16000 and (sr % 16000 == 0):
@@ -45,7 +45,7 @@ class VoiceActivityDetection():
         if sr not in self.sample_rates:
             raise ValueError(
                 f"Supported sampling rates: {self.sample_rates} (or multiply of 16000)")
-        if sr / x.shape[1]  31.25:
+        if sr / x.shape[1] < 31.25:
             raise ValueError("Input audio chunk is too short")
 
         return x, sr
@@ -128,43 +128,43 @@ class VoiceActivityDetection():
         # Define the target file path
         model_filename = os.path.join(target_dir, "silero_vad.onnx")
 
-    # Check if the model file already exists
-    if not os.path.exists(model_filename):
-        # If it doesn't exist, download the model using wget
-    try:
-    subprocess.run(["wget", "-O", model_filename, model_url], check=True)
-    except subprocess.CalledProcessError:
-    print("Failed to download the model using wget.")
-    return model_filename
+        # Check if the model file already exists
+        if not os.path.exists(model_filename):
+            # If it doesn't exist, download the model using wget
+            try:
+                subprocess.run(["wget", "-O", model_filename, model_url], check=True)
+            except subprocess.CalledProcessError:
+                print("Failed to download the model using wget.")
+        return model_filename
 
 
 class VoiceActivityDetector:
     def __init__(self, threshold=0.5, frame_rate=16000):
-    """
- Initializes the VoiceActivityDetector with a voice activity detection model and a threshold.
+        """
+        Initializes the VoiceActivityDetector with a voice activity detection model and a threshold.
 
- Args:
- threshold (float, optional): The probability threshold for detecting voice activity. Defaults to 0.5.
- """
-    self.model = VoiceActivityDetection()
-    self.threshold = threshold
-    self.frame_rate = frame_rate
+        Args:
+            threshold (float, optional): The probability threshold for detecting voice activity. Defaults to 0.5.
+        """
+        self.model = VoiceActivityDetection()
+        self.threshold = threshold
+        self.frame_rate = frame_rate
 
     def __call__(self, audio_frame):
-    """
- Determines if the given audio frame contains speech by comparing the detected speech probability against
- the threshold.
+        """
+        Determines if the given audio frame contains speech by comparing the detected speech probability against
+        the threshold.
 
- Args:
- audio_frame (np.ndarray): The audio frame to be analyzed for voice activity. It is expected to be a
- NumPy array of audio samples.
+        Args:
+            audio_frame (np.ndarray): The audio frame to be analyzed for voice activity. It is expected to be a
+            NumPy array of audio samples.
 
- Returns:
- bool: True if the speech probability exceeds the threshold, indicating the presence of voice activity;
- False otherwise.
- """
-    speech_probs = self.model.audio_forward(
-        torch.from_numpy(
-            audio_frame.copy()),
-        self.frame_rate)[0]
-    return torch.any(speech_probs > self.threshold).item()
+        Returns:
+            bool: True if the speech probability exceeds the threshold, indicating the presence of voice activity;
+            False otherwise.
+        """
+        speech_probs = self.model.audio_forward(
+            torch.from_numpy(
+                audio_frame.copy()),
+            self.frame_rate)[0]
+        return torch.any(speech_probs > self.threshold).item()

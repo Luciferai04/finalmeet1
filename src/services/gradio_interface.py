@@ -1,6 +1,15 @@
-import gradio as gr
-import asyncio
-import whisper
+"""
+This build ships without the Gradio UI implementation.
+This module is a safe placeholder to avoid import-time failures in production.
+"""
+
+class GradioInterfaceUnavailable(Exception):
+    pass
+
+def create_app():
+    raise GradioInterfaceUnavailable(
+        "gradio_interface is not included in this build. Enable the UI feature to use it."
+    )
 import google.generativeai as genai
 from typing import Iterator
 import redis

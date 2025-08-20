@@ -1,5 +1,9 @@
 """
-Live Camera Real-Time Audio Translation System
+Live camera translator is disabled in this build.
+"""
+
+def main():
+    raise NotImplementedError("live_camera_translator is not included in this build.")
 
 This module provides a complete live camera interface that:
 1. Captures live video from camera/webcam

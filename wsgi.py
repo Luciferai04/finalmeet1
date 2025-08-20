@@ -19,7 +19,7 @@ from src.core.config import Config
 config_name = os.environ.get('FLASK_ENV', 'production')
 
 # Create application instance
-app = create_app(config_name)
+app = create_app(Config.get_config(config_name))
 
 """
 This `app` object is used by any WSGI server configured to use this file.

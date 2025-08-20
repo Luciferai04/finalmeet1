@@ -1,5 +1,9 @@
 """
-Console-Only Live Camera Real-Time Audio Translation System
+Console live camera translator is disabled in this build.
+"""
+
+def main():
+    raise NotImplementedError("live_camera_console is not included in this build.")
 
 This module provides a console-based live camera interface for systems
 where GUI/tkinter is not available.

@@ -1,6 +1,15 @@
-import gradio as gr
-import asyncio
-import whisper
+"""
+Enhanced Gradio UI is not enabled in this build.
+This is a safe placeholder.
+"""
+
+class EnhancedUIUnavailable(Exception):
+    pass
+
+def create_app():
+    raise EnhancedUIUnavailable(
+        "gradio_interface_enhanced is not included in this build."
+    )
 import google.generativeai as genai
 from typing import Iterator
 import redis

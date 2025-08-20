@@ -1,10 +1,25 @@
 import unittest
-from services.enhanced_translation_service import EnhancedTranslationService
+import sys
+from pathlib import Path
+from flask import Flask
+
+# Add src directory to Python path
+sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
+
+from src.services.enhanced_translation_service import EnhancedTranslationService
 
 class TestEnhancedTranslationService(unittest.TestCase):
 
     def setUp(self):
+        self.app = Flask(__name__)
+        self.app.config['TESTING'] = True
+        self.app.config['GOOGLE_API_KEY'] = "test-key"
+        self.ctx = self.app.app_context()
+        self.ctx.push()
         self.service = EnhancedTranslationService(api_key="test-key")
+
+    def tearDown(self):
+        self.ctx.pop()
 
     def test_basic_translation(self):
         result = self.service.translate("Hello world", "Spanish")

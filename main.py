@@ -20,11 +20,11 @@ if __name__ == "__main__":
     # Get configuration from environment
     config_name = os.environ.get('FLASK_ENV', 'development')
     
-    # Create application instance
-    app = create_app(config_name)
+    # Get configuration class
+    config_class = Config.get_config(config_name)
     
-    # Get configuration
-    config = Config.get_config(config_name)
+    # Create application instance
+    app = create_app(config_class)
     
     # Run application
     if config_name == 'development':

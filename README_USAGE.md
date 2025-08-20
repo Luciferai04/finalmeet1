@@ -9,8 +9,9 @@
 
 ### Option 2: Manual Setup
 ```bash
-# 1. Set API Key
-export GOOGLE_API_KEY="AIzaSyAO8JzfpF9NpPbgQWCm40wJEbMvuplsA5A"
+# 1. Set API Key (do NOT hardcode in files)
+# Use your real key from a secure source or secrets manager
+export GOOGLE_API_KEY="{{GOOGLE_API_KEY}}"
 
 # 2. Start WhisperLive Server
 python3 WhisperLive/simple_whisper_server.py --port 9090 &
@@ -129,10 +130,13 @@ python3 WhisperLive/simple_whisper_server.py --port 9090 &
 ```
 [WARNING] No Gemini model available, using fallback
 ```
-**Solution**: Check API key is set
+**Solution**: Check API key is set (without printing it)
 ```bash
-echo $GOOGLE_API_KEY
-# Should output: AIzaSyAO8JzfpF9NpPbgQWCm40wJEbMvuplsA5A
+# Verify the variable is non-empty without revealing it
+python - <<'PY'
+import os
+print('set' if os.environ.get('GOOGLE_API_KEY') else 'missing')
+PY
 ```
 
 ### Camera/Audio Permissions
