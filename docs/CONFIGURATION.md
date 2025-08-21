@@ -50,4 +50,25 @@ See `config/environments/production.env.example` for additional production-orien
 - `is_api_key_configured(service)` safe checks
 - `get_safe_config()` masks secrets for logs/diagnostics
 
+### Running the Gradio App
+
+The main Gradio application is `src/ui/live_camera_enhanced_ui.py`. To run it:
+
+1. **Start the WhisperLive server first**:
+   ```bash
+   python run_server.py --port 9090
+   ```
+
+2. **Launch the Gradio UI**:
+   ```bash
+   python run_ui.py
+   ```
+
+3. **Access the interface** at `http://localhost:7860`
+
+**Note**: The Gradio app requires:
+- A running WhisperLive server
+- Valid `GOOGLE_API_KEY` environment variable
+- Optional: Redis server for advanced features
+
 
